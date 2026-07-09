@@ -177,70 +177,71 @@ class VoiceToTextConverter:
     
     def listen_loop(self):
         """Основной цикл прослушивания"""
-        while self.is_listening:
-            try:
-                with self.microphone as source:
-                    audio = self.recognizer.listen(source, timeout=1, phrase_time_limit=10)
-                
-                # Распознавание речи
+        # Открываем микрофон один раз перед циклом, чтобы не пропускать первые слова
+        with self.microphone as source:
+            while self.is_listening:
                 try:
-                    text = self.recognizer.recognize_google(audio, language='ru-RU')
-                    if text.strip():
-                        # Проверяем голосовые команды
-                        if self.check_voice_command(text):
-                            continue  # Пропускаем добавление текста, если это была команда
-                        
-                        # Если в режиме паузы, не добавляем текст
-                        if self.is_paused:
-                            continue
-                        
-                        # Добавляем распознанный текст
-                        self.add_text(text)
-                        
-                        # Автоматическая вставка в активное окно
-                        if self.auto_insert:
-                            print(f"Попытка вставки текста: '{text}'")
-                            
-                            # Пробуем Windows API метод (самый надежный)
-                            if self.insert_text_windows_api(text):
-                                self.status_label.config(text=f"Вставлено (WinAPI): {text[:50]}...")
-                                print(f"✅ Текст успешно вставлен (Windows API): '{text}'")
-                            else:
-                                # Пробуем pywinauto метод
-                                print("Пробую pywinauto метод вставки...")
-                                if self.insert_text_pywinauto(text):
-                                    self.status_label.config(text=f"Вставлено (pywinauto): {text[:50]}...")
-                                    print(f"✅ Текст успешно вставлен (pywinauto): '{text}'")
-                                else:
-                                    # Пробуем основной метод
-                                    print("Пробую основной метод вставки...")
-                                    if self.insert_text_to_active_window(text):
-                                        self.status_label.config(text=f"Вставлено: {text[:50]}...")
-                                        print(f"✅ Текст успешно вставлен (основной метод): '{text}'")
-                                    else:
-                                        # Пробуем альтернативный метод
-                                        print("Пробую альтернативный метод вставки...")
-                                        if self.insert_text_alternative(text):
-                                            self.status_label.config(text=f"Вставлено (альт.): {text[:50]}...")
-                                            print(f"✅ Текст успешно вставлен (альтернативный метод): '{text}'")
-                                        else:
-                                            self.status_label.config(text=f"Ошибка вставки: {text[:50]}...")
-                                            print(f"❌ Ошибка при вставке текста: '{text}'")
-                        else:
-                            # Просто копируем в буфер обмена
-                            pyperclip.copy(text)
-                            self.status_label.config(text=f"Скопировано: {text[:50]}...")
-                            print(f"📋 Текст скопирован в буфер: '{text}'")
-                except sr.UnknownValueError:
-                    pass  # Не удалось распознать речь
-                except sr.RequestError as e:
-                    self.status_label.config(text=f"Ошибка распознавания: {e}")
+                    audio = self.recognizer.listen(source, timeout=1)
                     
-            except sr.WaitTimeoutError:
-                continue
-            except Exception as e:
-                self.status_label.config(text=f"Ошибка: {e}")
-                break
+                    # Распознавание речи
+                    try:
+                        text = self.recognizer.recognize_google(audio, language='ru-RU')
+                        if text.strip():
+                            # Проверяем голосовые команды
+                            if self.check_voice_command(text):
+                                continue  # Пропускаем добавление текста, если это была команда
+                            
+                            # Если в режиме паузы, не добавляем текст
+                            if self.is_paused:
+                                continue
+                            
+                            # Добавляем распознанный текст
+                            self.add_text(text)
+                            
+                            # Автоматическая вставка в активное окно
+                            if self.auto_insert:
+                                print(f"Попытка вставки текста: '{text}'")
+                                
+                                # Пробуем Windows API метод (самый надежный)
+                                if self.insert_text_windows_api(text):
+                                    self.status_label.config(text=f"Вставлено (WinAPI): {text[:50]}...")
+                                    print(f"✅ Текст успешно вставлен (Windows API): '{text}'")
+                                else:
+                                    # Пробуем pywinauto метод
+                                    print("Пробую pywinauto метод вставки...")
+                                    if self.insert_text_pywinauto(text):
+                                        self.status_label.config(text=f"Вставлено (pywinauto): {text[:50]}...")
+                                        print(f"✅ Текст успешно вставлен (pywinauto): '{text}'")
+                                    else:
+                                        # Пробуем основной метод
+                                        print("Пробую основной метод вставки...")
+                                        if self.insert_text_to_active_window(text):
+                                            self.status_label.config(text=f"Вставлено: {text[:50]}...")
+                                            print(f"✅ Текст успешно вставлен (основной метод): '{text}'")
+                                        else:
+                                            # Пробуем альтернативный метод
+                                            print("Пробую альтернативный метод вставки...")
+                                            if self.insert_text_alternative(text):
+                                                self.status_label.config(text=f"Вставлено (альт.): {text[:50]}...")
+                                                print(f"✅ Текст успешно вставлен (альтернативный метод): '{text}'")
+                                            else:
+                                                self.status_label.config(text=f"Ошибка вставки: {text[:50]}...")
+                                                print(f"❌ Ошибка при вставке текста: '{text}'")
+                            else:
+                                # Просто копируем в буфер обмена
+                                pyperclip.copy(text)
+                                self.status_label.config(text=f"Скопировано: {text[:50]}...")
+                                print(f"📋 Текст скопирован в буфер: '{text}'")
+                    except sr.UnknownValueError:
+                        pass  # Не удалось распознать речь
+                    except sr.RequestError as e:
+                        self.status_label.config(text=f"Ошибка распознавания: {e}")
+                        
+                except sr.WaitTimeoutError:
+                    continue
+                except Exception as e:
+                    self.status_label.config(text=f"Ошибка: {e}")
+                    break
     
     def add_text(self, text):
         """Добавить текст в область отображения"""
